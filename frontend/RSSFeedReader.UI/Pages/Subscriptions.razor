@@ -1,0 +1,95 @@
+@page "/"
+@namespace RSSFeedReader.UI.Pages
+@inject SubscriptionApiClient ApiClient
+
+<PageTitle>Subscriptions - RSS Feed Reader</PageTitle>
+
+<h1>Subscriptions</h1>
+
+<form @onsubmit="AddSubscriptionAsync" @onsubmit:preventDefault>
+    <label for="subscription-url">Feed URL</label>
+    <input id="subscription-url" @bind="urlInput" />
+    <button type="submit" disabled="@isSubmitting">Add subscription</button>
+</form>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p role="alert">@errorMessage</p>
+}
+
+<h2>Your subscriptions</h2>
+@if (!isLoaded)
+{
+    <p>Loading subscriptions...</p>
+}
+else if (subscriptions.Count == 0)
+{
+    <p>No subscriptions yet.</p>
+}
+else
+{
+    <ul>
+        @foreach (var url in subscriptions)
+        {
+            <li>@url</li>
+        }
+    </ul>
+}
+
+@code {
+    private readonly List<string> subscriptions = [];
+    private string urlInput = string.Empty;
+    private string? errorMessage;
+    private bool isLoaded;
+    private bool isSubmitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            subscriptions.AddRange(await ApiClient.GetSubscriptionsAsync());
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Unable to load subscriptions. Please try again.";
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            errorMessage = "Unable to load subscriptions. Please try again.";
+        }
+        finally
+        {
+            isLoaded = true;
+        }
+    }
+
+    private async Task AddSubscriptionAsync()
+    {
+        if (isSubmitting || string.IsNullOrWhiteSpace(urlInput))
+        {
+            return;
+        }
+
+        errorMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            var acceptedUrl = await ApiClient.AddSubscriptionAsync(urlInput);
+            subscriptions.Add(acceptedUrl);
+            urlInput = string.Empty;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Unable to add subscription. Please try again.";
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            errorMessage = "Unable to add subscription. Please try again.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}
