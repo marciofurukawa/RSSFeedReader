@@ -1,0 +1,87 @@
+openapi: 3.1.0
+info:
+  title: RSS Feed Reader Subscription API
+  version: 1.0.0
+  description: >
+    Local MVP API for adding and listing subscription URLs. URLs are stored as
+    inert values; the API does not retrieve or parse feed content.
+servers:
+  - url: http://localhost:{port}
+    description: Local development server; configure port from the API launch settings.
+    variables:
+      port:
+        default: "5000"
+paths:
+  /api/subscriptions:
+    get:
+      summary: List current subscriptions
+      description: Returns subscriptions in insertion order for the current API process.
+      responses:
+        "200":
+          description: Current subscription values; empty when none have been added.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                  pattern: '\S'
+              example:
+                - https://example.test/feed.xml
+        "500":
+          description: Unexpected server failure; internal details are not exposed.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                description: A user-safe problem response without internal exception details.
+    post:
+      summary: Add a subscription
+      description: >
+        Appends a nonblank URL as inert text. Duplicate values are allowed. This
+        operation does not validate the URL or make a request to it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              additionalProperties: false
+              properties:
+                url:
+                  type: string
+                  minLength: 1
+                  pattern: '\S'
+            example:
+              url: https://example.test/feed.xml
+      responses:
+        "200":
+          description: Subscription accepted and appended.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - url
+                properties:
+                  url:
+                    type: string
+              example:
+                url: https://example.test/feed.xml
+        "400":
+          description: Missing, empty, or whitespace-only URL value.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                description: A user-safe problem response without internal exception details.
+        "500":
+          description: Unexpected server failure; internal details are not exposed.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                description: A user-safe problem response without internal exception details.
